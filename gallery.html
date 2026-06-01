@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0c0c0c;
+      --surface: #141414;
+      --text: #e8e2d9;
+      --muted: #555;
+      --accent: #c8a96e;
+      --gap: 12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 40px;
+      background: rgba(12,12,12,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.4rem;
+      letter-spacing: 0.02em;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo span { color: var(--accent); font-style: italic; }
+
+    nav {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+    }
+
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+
+    nav a:hover { color: var(--text); }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 80px 40px 48px;
+      max-width: 600px;
+    }
+
+    .hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      line-height: 1.1;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .hero h1 em {
+      color: var(--accent);
+      font-style: italic;
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      max-width: 420px;
+    }
+
+    /* ── FILTER TABS ── */
+    .filters {
+      display: flex;
+      gap: 8px;
+      padding: 0 40px 32px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--muted);
+      padding: 6px 18px;
+      border-radius: 100px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover,
+    .filter-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0c0c0c;
+    }
+
+    /* ── MASONRY GRID ── */
+    .gallery {
+      padding: 0 40px 80px;
+      columns: 4;
+      column-gap: var(--gap);
+    }
+
+    @media (max-width: 1100px) { .gallery { columns: 3; } }
+    @media (max-width: 720px)  { .gallery { columns: 2; padding: 0 16px 60px; } }
+    @media (max-width: 480px)  { .gallery { columns: 1; } }
+
+    .photo-card {
+      break-inside: avoid;
+      margin-bottom: var(--gap);
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+      cursor: pointer;
+      background: var(--surface);
+    }
+
+    .photo-card img {
+      width: 100%;
+      display: block;
+      transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .photo-card:hover img { transform: scale(1.04); }
+
+    .photo-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      display: flex;
+      align-items: flex-end;
+      padding: 20px;
+    }
+
+    .photo-card:hover .photo-overlay { opacity: 1; }
+
+    .photo-meta {
+      transform: translateY(8px);
+      transition: transform 0.3s;
+    }
+
+    .photo-card:hover .photo-meta { transform: translateY(0); }
+
+    .photo-title {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #fff;
+      display: block;
+    }
+
+    .photo-tag {
+      font-size: 0.72rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 2px;
+      display: block;
+    }
+
+    /* ── LIGHTBOX ── */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.95);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .lightbox.open { opacity: 1; pointer-events: all; }
+
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 4px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.8);
+      transform: scale(0.95);
+      transition: transform 0.3s;
+    }
+
+    .lightbox.open img { transform: scale(1); }
+
+    .lightbox-close {
+      position: absolute;
+      top: 24px;
+      right: 32px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 2rem;
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+
+    .lightbox-close:hover { color: var(--text); }
+
+    .lightbox-info {
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+    }
+
+    .lightbox-info span {
+      font-size: 0.8rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding: 32px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    /* ── ANIMATIONS ── */
+    .photo-card {
+      animation: fadeUp 0.5s both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* stagger cards */
+    .photo-card:nth-child(1)  { animation-delay: 0.05s; }
+    .photo-card:nth-child(2)  { animation-delay: 0.10s; }
+    .photo-card:nth-child(3)  { animation-delay: 0.15s; }
+    .photo-card:nth-child(4)  { animation-delay: 0.20s; }
+    .photo-card:nth-child(5)  { animation-delay: 0.25s; }
+    .photo-card:nth-child(6)  { animation-delay: 0.30s; }
+    .photo-card:nth-child(7)  { animation-delay: 0.35s; }
+    .photo-card:nth-child(8)  { animation-delay: 0.40s; }
+    .photo-card:nth-child(9)  { animation-delay: 0.45s; }
+    .photo-card:nth-child(10) { animation-delay: 0.50s; }
+    .photo-card:nth-child(11) { animation-delay: 0.55s; }
+    .photo-card:nth-child(12) { animation-delay: 0.60s; }
+  </style>
+</head>
+<body>
+
+  <!-- ── HEADER ── -->
+  <header>
+    <!-- ✏️ Ganti "Ilham" dengan nama kamu -->
+    <a href="#" class="logo">Il<span>ham    asset</span></a>
+    <nav>
+      <a href="#gallery">Gallery</a>
+      <a href="#about">About</a>
+      <!-- <a href="mailto:kamu@email.com">Contact</a> -->
+    </nav>
+
+    <nav>
+      <a href="#gallery">Gallery</a>
+      <a href="#about">About</a>
+      <a href="#" id="logoutBtn" style="color: #ef4444; border: 1px solid #ef4444; padding: 4px 12px; border-radius: 100px;">Logout</a>
+    </nav>
+  </header>
+
+  <!-- ── HERO ── -->
+  <section class="hero">
+    <!-- ✏️ Edit teks hero sesuai keinginan -->
+    <h1>Website khusus<br /><em>galery.</em></h1>
+    <p>Ini Website untuk penggunaan pribadi, galery untuk semua website yg saya buat.</p>
+  </section>
+
+  <!-- ── FILTER TABS ── -->
+  <div class="filters">
+    <button class="filter-btn active" onclick="filterPhotos('all', this)">All</button>
+    <!-- ✏️ Tambah/hapus kategori sesuai kebutuhan -->
+    <button class="filter-btn" onclick="filterPhotos('alam', this)">Alam</button>
+    <button class="filter-btn" onclick="filterPhotos('urban', this)">Urban</button>
+    <button class="filter-btn" onclick="filterPhotos('portrait', this)">Portrait</button>
+    <button class="filter-btn" onclick="filterPhotos('lainnya', this)">Lainnya</button>
+  </div>
+
+  <!-- ── GALLERY ── -->
+  <!--
+  ╔══════════════════════════════════════════════════════╗
+  ║  CARA MENAMBAHKAN FOTO:                              ║
+  ║  1. Taruh foto kamu di folder "photos/"             ║
+  ║  2. Duplikat blok <div class="photo-card"> di bawah  ║
+  ║  3. Ganti src="photos/nama-file.jpg"                 ║
+  ║  4. Ganti data-category sesuai kategori filter       ║
+  ║  5. Ganti title & tag di photo-meta                  ║
+  ╚══════════════════════════════════════════════════════╝
+  -->
+  <main id="gallery" class="gallery">
+
+    <!-- CONTOH KARTU FOTO — duplikat blok ini untuk setiap foto -->
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/1.jpg" alt="Mountain fog" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">Mountain Fog</span>
+          <span class="photo-tag">Alam</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="urban">
+      <img src="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=600&q=80" alt="City lights" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">City Lights</span>
+          <span class="photo-tag">Urban</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="portrait">
+      <img src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600&q=80" alt="Portrait" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">Golden Hour</span>
+          <span class="photo-tag">Portrait</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600&q=80" alt="Forest" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">Into the Forest</span>
+          <span class="photo-tag">Alam</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="urban">
+      <img src="https://images.unsplash.com/photo-1444723121867-7a241cacace9?w=600&q=80" alt="Street" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">Empty Streets</span>
+          <span class="photo-tag">Urban</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="lainnya">
+      <img src="https://images.unsplash.com/photo-1518895312237-a9e23508077d?w=600&q=80" alt="Abstract" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">Abstract</span>
+          <span class="photo-tag">Lainnya</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="https://images.unsplash.com/photo-1490750967868-88df5691cc07?w=600&q=80" alt="Flowers" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">Bloom</span>
+          <span class="photo-tag">Alam</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="urban">
+      <img src="https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&q=80" alt="Tokyo" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">Neon City</span>
+          <span class="photo-tag">Urban</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="portrait">
+      <img src="https://images.unsplash.com/photo-1552058544-f2b08422138a?w=600&q=80" alt="Portrait 2" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">Solitude</span>
+          <span class="photo-tag">Portrait</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=80" alt="Lake" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">Still Waters</span>
+          <span class="photo-tag">Alam</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="lainnya">
+      <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80" alt="Minimal" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">Minimal</span>
+          <span class="photo-tag">Lainnya</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="urban">
+      <img src="https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&q=80" alt="Architecture" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">Lines & Angles</span>
+          <span class="photo-tag">Urban</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/2.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">Judul Foto</span>
+          <span class="photo-tag">Alam</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/swiss.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">dune walker</span>
+          <span class="photo-tag">Alam</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/foto1.png" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">dune walker</span>
+          <span class="photo-tag">Alam</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/foto2.png" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">dune walker</span>
+          <span class="photo-tag">Alam</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/foto3.png" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">dune walker</span>
+          <span class="photo-tag">Alam</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji1.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji2.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji3.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji4.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji5.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji6.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji7.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji8.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji9.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji11.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji12.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji13.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji14.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji15.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji16.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji17.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji18.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji19.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji20.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji21.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-card" data-category="alam">
+      <img src="./asset/ji22.jpg" alt="Deskripsi" loading="lazy" onclick="openLightbox(this)" />
+      <div class="photo-overlay">
+        <div class="photo-meta">
+          <span class="photo-title">jie</span>
+          <span class="photo-tag">ji</span>
+        </div>
+      </div>
+    </div>
+
+
+
+  <!-- ── LIGHTBOX ── -->
+  <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+    <button class="lightbox-close" onclick="closeLightbox()"></button>
+    <img id="lightbox-img" src="" alt="" />
+    <div class="lightbox-info">
+      <span id="lightbox-label">Tekan ESC untuk menutup</span>
+    </div>
+  </div>
+
+
+
+
+  <!-- ── FOOTER ── -->
+  <footer id="about">
+    <!-- ✏️ Edit footer sesuai nama / info kamu -->
+    <span>© 2026 Ilham — All rights reserved</span>
+    <span>Built with ♥</span>
+  </footer>
+
+  <script>
+    // ── FILTER ──
+    function filterPhotos(category, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      document.querySelectorAll('.photo-card').forEach(card => {
+        const match = category === 'all' || card.dataset.category === category;
+        card.style.display = match ? 'block' : 'none';
+      });
+    }
+
+    // ── LIGHTBOX ──
+    function openLightbox(img) {
+      const lb = document.getElementById('lightbox');
+      const lbImg = document.getElementById('lightbox-img');
+      lbImg.src = img.src.replace('w=600', 'w=1400');
+      lbImg.alt = img.alt;
+      lb.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox(e) {
+      if (e && e.target !== document.getElementById('lightbox') &&
+          !e.target.classList.contains('lightbox-close')) return;
+      document.getElementById('lightbox').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        document.getElementById('lightbox').classList.remove('open');
+        document.body.style.overflow = '';
+      }
+    });
+  </script>
+  <script src="gallery.js"></script>
+</body>
+</html>
