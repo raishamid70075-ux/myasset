@@ -11,4 +11,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Supabase API
-        run: curl -X GET "https://lwcrfvmuisptueejmbmg.supabase.co/rest/v1/dummy?select=*" -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3Y3Jmdm11aXNwdHVlZWptYm1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNjY5ODYsImV4cCI6MjA5NTg0Mjk4Nn0.QtlddMwZIzdlEUqouAKXTi90edqFWIkLxCnljfGSrmc" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3Y3Jmdm11aXNwdHVlZWptYm1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNjY5ODYsImV4cCI6MjA5NTg0Mjk4Nn0.QtlddMwZIzdlEUqouAKXTi90edqFWIkLxCnljfGSrmc"
+        run: curl -X GET "https://vynmmcsiwfptfytmiqdf.supabase.co/rest/v1/dummy?select=*" -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5bm1tY3Npd2ZwdGZ5dG1pcWRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzI1ODEsImV4cCI6MjA5NTcwODU4MX0.TwT0QvVru_nsI6y5BNFHSIYWvYA7faqQW1onjQqLGIo" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5bm1tY3Npd2ZwdGZ5dG1pcWRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzI1ODEsImV4cCI6MjA5NTcwODU4MX0.TwT0QvVru_nsI6y5BNFHSIYWvYA7faqQW1onjQqLGIo"
