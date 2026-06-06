@@ -4,18 +4,15 @@ on:
   schedule:
     # Berjalan setiap 4 hari sekali jam 00:00 UTC
     - cron: '0 0 */4 * *'
-  workflow_dispatch: # Tombol rahasia biar bisa Anda tes jalanin manual di GitHub
+  workflow_dispatch: # Biar bisa kamu klik "Run" manual buat ngetes
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase API (Extension)
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: 'https://vynmmcsiwfptfytmiqdf.supabase.co/rest/v1/dummy?select=1'
-          method: 'GET'
-          customHeaders: '{"apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5bm1tY3Npd2ZwdGZ5dG1pcWRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzI1ODEsImV4cCI6MjA5NTcwODU4MX0.TwT0QvVru_nsI6y5BNFHSIYWvYA7faqQW1onjQqLGIo", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5bm1tY3Npd2ZwdGZ5dG1pcWRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzI1ODEsImV4cCI6MjA5NTcwODU4MX0.TwT0QvVru_nsI6y5BNFHSIYWvYA7faqQW1onjQqLGIo"}'
-          ignoreStatusCodes: '404,400,401,403'
-
+      - name: Ping Supabase API
+        run: |
+          curl -X GET "https://vynmmcsiwfptfytmiqdf.supabase.co/rest/v1/dummy?select=*" \
+          -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5bm1tY3Npd2ZwdGZ5dG1pcWRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzI1ODEsImV4cCI6MjA5NTcwODU4MX0.TwT0QvVru_nsI6y5BNFHSIYWvYA7faqQW1onjQqLGIo" \
+          -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5bm1tY3Npd2ZwdGZ5dG1pcWRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzI1ODEsImV4cCI6MjA5NTcwODU4MX0.TwT0QvVru_nsI6y5BNFHSIYWvYA7faqQW1onjQqLGIo"
 
